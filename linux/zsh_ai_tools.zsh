@@ -304,6 +304,118 @@ ai-help() {
 
 # ---------------------------------------------------------
 # 14. AUTO-UPDATER (update-ai)
+
+# ---------------------------------------------------------
+# 17. MAGIC DIRECTORY JUMPER (tp)
+# ---------------------------------------------------------
+tp() {
+  local query="$*"
+  if [[ -z "$query" ]]; then
+    echo "Usage: tp <where do you want to go>"
+    return 1
+  fi
+  echo -e "\033[36m🔮 Teleporting...\033[0m"
+  
+  local sys="You are a smart terminal assistant. The user wants to cd into a directory matching: '$query'. Output ONLY a safe bash command using 'find ~ -type d -iname \"*something*\" 2>/dev/null | head -n 1' to find this directory. Use wildcards. Do not use markdown."
+  local cmd=$(_call_groq "$sys" "$query")
+  local target=$(eval "$cmd" 2>/dev/null)
+  
+  if [[ -n "$target" && -d "$target" ]]; then
+    echo -e "\033[32m✨ Jumped to: $target\033[0m"
+    cd "$target"
+  else
+    echo -e "\033[31mCould not find a matching directory.\033[0m"
+  fi
+}
+
+# ---------------------------------------------------------
+# 18. SEMANTIC FOLDER CLEANER (tidy)
+# ---------------------------------------------------------
+tidy() {
+  local target_dir="${1:-.}"
+  if [[ ! -d "$target_dir" ]]; then
+    echo "Directory not found!"
+    return 1
+  fi
+  
+  echo -e "\033[36m🧹 Analyzing files in $target_dir...\033[0m"
+  local files=$(ls -1 "$target_dir" | head -n 50)
+  
+  if [[ -z "$files" ]]; then
+    echo "Directory is empty."
+    return 0
+  fi
+  
+  local sys="You are a smart file organizer. Analyze this list of files. Group them logically by purpose (e.g., 'Images', 'Invoices', 'Code'). Output ONLY a raw bash script (no markdown, no backticks) that creates these directories inside '$target_dir' and uses 'mv' to move the specific files into them. Do not explain."
+  local script=$(_call_groq "$sys" "$files")
+  
+  echo -e "\033[33mProposed Cleanup Plan:\033[0m"
+  echo "$script" | sed 's/^/  /'
+  echo
+  read -q "REPLY?Execute this cleanup? (y/n): " < /dev/tty
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    eval "$script"
+    echo -e "\033[32mDirectory tidied!\033[0m"
+  else
+    echo "Aborted."
+  fi
+}
+
+# ---------------------------------------------------------
+# 19. HOLLYWOOD HACKER MODE (hacker-mode)
+# ---------------------------------------------------------
+hacker-mode() {
+  local prompt="$*"
+  if [[ -z "$prompt" ]]; then
+    echo "Usage: hacker-mode <what to hack>"
+    return 1
+  fi
+  echo -e "\033[32m[ACCESSING MAINFRAME] Generating payload...\033[0m"
+  
+  local sys="You are a master hacker. Generate a complex, authentic-looking script (Python or C++) that accomplishes: $prompt. Output ONLY the raw code, no markdown, no explanations. Make it look incredibly advanced."
+  local code=$(_call_groq "$sys" "$prompt")
+  
+  clear
+  echo -e "\033[32m[CONNECTION ESTABLISHED] Mash keyboard to inject code.\033[0m\n"
+  
+  local i=0
+  local code_len=${#code}
+  
+  while [[ $i -lt $code_len ]]; do
+    read -r -s -k 1 < /dev/tty
+    local chunk="${code:$i:6}"
+    echo -n -e "\033[32m$chunk\033[0m"
+    i=$((i + 6))
+  done
+  echo -e "\n\n\033[31m[ACCESS GRANTED] Payload injected.\033[0m"
+}
+
+# ---------------------------------------------------------
+# 20. TOXIC SHELL (toxic-shell)
+# ---------------------------------------------------------
+toxic-shell() {
+  if [[ "$TOXIC_SHELL_ENABLED" == "true" ]]; then
+    export TOXIC_SHELL_ENABLED="false"
+    echo -e "\033[32mToxic shell disabled. It's safe now.\033[0m"
+  else
+    export TOXIC_SHELL_ENABLED="true"
+    echo -e "\033[31mToxic shell enabled. Don't make any mistakes.\033[0m"
+  fi
+}
+
+_toxic_precmd() {
+  local exit_code=$?
+  if [[ "$TOXIC_SHELL_ENABLED" == "true" && $exit_code -ne 0 && $exit_code -ne 130 ]]; then
+    local last_cmd=$(fc -ln -1 | xargs)
+    local sys="You are a ruthless, arrogant, Gordon Ramsay-style senior developer. The user just ran a terminal command that failed. The command was: '$last_cmd'. Output a 1-2 sentence brutal insult about their intelligence. Be sarcastic, toxic, and mean. No markdown."
+    local roast=$(_call_groq "$sys" "Roast me for this failed command: $last_cmd")
+    echo -e "\n\033[31m☠️  $roast\033[0m\n"
+  fi
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _toxic_precmd
+
 # ---------------------------------------------------------
 update-ai() {
   echo -e "\033[36m🤖 Pulling latest AI tools from GitHub...\033[0m"
