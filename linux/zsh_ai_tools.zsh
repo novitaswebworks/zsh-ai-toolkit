@@ -300,3 +300,21 @@ ai-help() {
   echo -e "\033[36mplay-music\033[0m   - e.g. \033[33mplay-music 'lo-fi chill'\033[0m (Plays via Spotify (Requires Linux integration))"
   echo -e "================================================================\n"
 }
+
+# ---------------------------------------------------------
+# 14. AUTO-UPDATER (update-ai)
+# ---------------------------------------------------------
+update-ai() {
+  echo -e "\033[36m🤖 Pulling latest AI tools from GitHub...\033[0m"
+  local OS_TYPE="linux"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+      OS_TYPE="mac"
+  fi
+  local BASE_URL="https://raw.githubusercontent.com/novitaswebworks/zsh-ai-toolkit/master/$OS_TYPE"
+  
+  curl -sL "$BASE_URL/zsh_ai_tools.zsh" -o ~/.zsh_ai_tools
+  curl -sL "$BASE_URL/groq_autocomplete.zsh" -o ~/.groq_autocomplete.zsh
+  
+  echo -e "\033[32m✅ Update complete! Reloading shell...\033[0m"
+  source ~/.zshrc
+}

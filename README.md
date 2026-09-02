@@ -39,6 +39,14 @@ bash -c "$(curl -fsSL https://tinyurl.com/28bdwehc)"
 
 --- 
 
+### 🔄 Updating
+To get the newest features in the future, simply run:
+```bash
+update-ai
+```
+
+--- 
+
 ### ⚙️ Manual Installation
 
 ### 🍎 macOS
