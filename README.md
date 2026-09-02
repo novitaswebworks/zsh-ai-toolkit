@@ -21,6 +21,10 @@ This toolkit injects **Groq's high-speed inference** directly into your Zsh (Mac
 
 1.  **Groq API Key**: Get a free API key from [console.groq.com](https://console.groq.com/keys).
 2.  **Dependencies**: `python3`, `curl` (already pre-installed on almost all macOS/Linux systems).
+3.  **Shell**: 
+    *   **macOS**: Uses Zsh (which is already the default on Mac).
+    *   **Linux**: You must have `zsh` installed (the `Ctrl+G` widget relies on the Zsh Line Editor).
+    *   **Windows**: Uses standard PowerShell.
 
 ---
 
