@@ -469,36 +469,7 @@ tidy() {
   fi
   
   rm -f "$proposed_moves"
-}"
-  if [[ ! -d "$target_dir" ]]; then
-    echo "Directory not found!"
-    return 1
-  fi
-  
-  echo -e "\033[36m🧹 Analyzing files in $target_dir...\033[0m"
-  local files=$(ls -1 "$target_dir" | head -n 50)
-  
-  if [[ -z "$files" ]]; then
-    echo "Directory is empty."
-    return 0
-  fi
-  
-  local sys="You are a smart file organizer. Analyze this list of files. Group them logically by purpose (e.g., 'Images', 'Invoices', 'Code'). Output ONLY a raw bash script (no markdown, no backticks) that creates these directories inside '$target_dir' and uses 'mv' to move the specific files into them. Do not explain."
-  local script=$(_call_groq "$sys" "$files")
-  
-  echo -e "\033[33mProposed Cleanup Plan:\033[0m"
-  echo "$script" | sed 's/^/  /'
-  echo
-  read -q "REPLY?Execute this cleanup? (y/n): " < /dev/tty
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    eval "$script"
-    echo -e "\033[32mDirectory tidied!\033[0m"
-  else
-    echo "Aborted."
-  fi
 }
-
 # ---------------------------------------------------------
 # 19. HOLLYWOOD HACKER MODE (hacker-mode)
 # ---------------------------------------------------------
