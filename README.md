@@ -30,6 +30,17 @@ This toolkit injects **Groq's high-speed inference** directly into your Zsh (Mac
 
 ## 🚀 Installation
 
+### 🪄 Auto-Install (Mac & Linux)
+The easiest way to install is by running this single command in your terminal. It will automatically download the files, ask for your Groq API key, and configure your `.zshrc`:
+
+```bash
+curl -sL https://raw.githubusercontent.com/novitaswebworks/zsh-ai-toolkit/master/install.sh | bash
+```
+
+--- 
+
+### ⚙️ Manual Installation
+
 ### 🍎 macOS
 1. Copy the contents of `mac/zsh_ai_tools.zsh` and `mac/groq_autocomplete.zsh` to your home directory.
 2. Add your API key to a `~/.zsh_secrets` file (see `mac/zsh_secrets.example`).
