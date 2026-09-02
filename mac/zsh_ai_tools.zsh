@@ -226,7 +226,7 @@ find-ai() {
 }
 
 # ---------------------------------------------------------
-# 11. HEADLESS YOUTUBE STREAMER (play-music)
+# 11. TERMINAL DJ + VISUALIZER (play-music)
 # ---------------------------------------------------------
 play-music() {
   local mood="$*"
@@ -235,18 +235,33 @@ play-music() {
     return 1
   fi
   
-  if ! command -v mpv &> /dev/null; then
-    echo -e "[31mError: mpv is not installed.[0m"
-    echo "To stream background music directly in the terminal, please install it:"
-    echo "  Mac: brew install mpv yt-dlp"
-    echo "  Linux: sudo apt install mpv yt-dlp"
+  if ! command -v mpv &> /dev/null || ! command -v cava &> /dev/null; then
+    echo -e "[31mError: mpv or cava is not installed.[0m"
+    echo "To use the visualizer, please install them:"
+    echo "  Mac: brew install mpv yt-dlp cava"
+    echo "  Linux: sudo apt install mpv yt-dlp cava"
     return 1
   fi
 
   echo -e "[36m🎵 Tuning in to YouTube for: $mood...[0m"
-  echo -e "[33m(Playing in background. Run 'killall mpv' to stop)[0m"
+  echo -e "[33m(Launching Cava visualizer... Press Q or Ctrl+C to stop music)[0m"
   
-  mpv --no-video "ytdl://ytsearch:$mood"
+  # Start mpv in the background
+  nohup mpv --no-video "ytdl://ytsearch:$mood" > /dev/null 2>&1 &
+  local MPV_PID=$!
+  
+  # Ensure mpv is killed when cava exits or user hits Ctrl+C
+  trap "kill $MPV_PID 2>/dev/null" RETURN INT TERM EXIT
+  
+  # Give mpv a second to buffer before starting visualizer
+  sleep 1
+  cava
+  
+  # Clean up trap and kill mpv if cava exited normally
+  trap - RETURN INT TERM EXIT
+  kill $MPV_PID 2>/dev/null
+  echo -e "
+[32mMusic stopped.[0m"
 }
 
 # ---------------------------------------------------------
