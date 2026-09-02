@@ -355,5 +355,5 @@ update-ai() {
   curl -sL "$BASE_URL/groq_autocomplete.zsh" -o ~/.groq_autocomplete.zsh
   
   echo -e "\033[32m✅ Update complete! Reloading shell...\033[0m"
-  source ~/.zshrc
+  exec zsh
 }
