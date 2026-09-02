@@ -251,14 +251,14 @@ play-music() {
   local MPV_PID=$!
   
   # Ensure mpv is killed when cava exits or user hits Ctrl+C
-  trap "kill $MPV_PID 2>/dev/null" RETURN INT TERM EXIT
+  trap "kill $MPV_PID 2>/dev/null" EXIT INT TERM
   
   # Give mpv a second to buffer before starting visualizer
   sleep 1
   cava
   
   # Clean up trap and kill mpv if cava exited normally
-  trap - RETURN INT TERM EXIT
+  trap - EXIT INT TERM
   kill $MPV_PID 2>/dev/null
   echo -e "
 [32mMusic stopped.[0m"
