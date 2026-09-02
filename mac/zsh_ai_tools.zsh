@@ -344,15 +344,28 @@ tp() {
   fi
   echo -e "\033[36m🔮 Teleporting...\033[0m"
   
-  local sys="You are a smart terminal assistant. The user wants to cd into a directory matching: '$query'. Output ONLY a safe bash command using 'find ~ -type d -iname \"*something*\" 2>/dev/null | head -n 1' to find this directory. Use wildcards. Do not use markdown."
-  local cmd=$(_call_groq "$sys" "$query")
-  local target=$(eval "$cmd" 2>/dev/null)
+  # Ask AI for just the core keyword
+  local sys="You extract the core folder name from the user's intent. User says: '$query'. Output ONLY the single most important word to search for. For example, if user says 'the react frontend', output 'react'. If 'Downloads', output 'Downloads'. No quotes, no markdown, no spaces."
+  local keyword=$(_call_groq "$sys" "$query")
   
+  # 1. Search visible folders (maxdepth 5), sort by shortest path
+  local target=$(find ~ -maxdepth 5 -not -path '*/\.*' -type d -iname "*${keyword}*" 2>/dev/null | awk '{ print length, $0 }' | sort -n | cut -d" " -f2- | head -n 1)
+  
+  # 2. Fallback: Include hidden folders
+  if [[ -z "$target" ]]; then
+    target=$(find ~ -maxdepth 5 -type d -iname "*${keyword}*" 2>/dev/null | awk '{ print length, $0 }' | sort -n | cut -d" " -f2- | head -n 1)
+  fi
+  
+  # 3. Fallback: Search everywhere (slowest)
+  if [[ -z "$target" ]]; then
+    target=$(find ~ -type d -iname "*${keyword}*" 2>/dev/null | awk '{ print length, $0 }' | sort -n | cut -d" " -f2- | head -n 1)
+  fi
+
   if [[ -n "$target" && -d "$target" ]]; then
     echo -e "\033[32m✨ Jumped to: $target\033[0m"
     cd "$target"
   else
-    echo -e "\033[31mCould not find a matching directory.\033[0m"
+    echo -e "\033[31mCould not find a directory matching: $keyword\033[0m"
   fi
 }
 
