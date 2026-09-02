@@ -316,6 +316,7 @@ ai-help() {
   echo -e "\033[36miac\033[0m          - e.g. \033[33miac 's3 bucket'\033[0m (Generates Terraform main.tf)"
   echo -e "\033[36msql-gen\033[0m      - e.g. \033[33msql-gen 'find active users'\033[0m (Outputs raw SQL)"
   echo -e "\033[36mfind-ai\033[0m      - e.g. \033[33mfind-ai 'database passwords'\033[0m (Semantic file search)"
+  echo -e "\033[36mexplain\033[0m      - e.g. \033[33mexplain tar\033[0m (AI Man Pages via SmartMan TUI)"
   echo -e "----------------------------------------------------------------"
   echo -e "\033[36mnet-doctor\033[0m   - e.g. \033[33mnet-doctor 8.8.8.8\033[0m (Diagnoses network issues)"
   echo -e "\033[36maudit-logs\033[0m   - e.g. \033[33maudit-logs error.log\033[0m (Finds anomalies in logs)"
@@ -342,4 +343,25 @@ update-ai() {
   
   echo -e "\033[32m✅ Update complete! Reloading shell...\033[0m"
   exec zsh
+}
+
+# ---------------------------------------------------------
+# 16. AI MAN PAGES (explain)
+# ---------------------------------------------------------
+explain() {
+  local cmd="$1"
+  if [[ -z "$cmd" ]]; then
+    echo "Usage: explain <command>"
+    echo "Example: explain tar"
+    return 1
+  fi
+  
+  if command -v smartman &> /dev/null; then
+    # Use the user's custom SmartMan TUI!
+    smartman "$cmd"
+  else
+    echo -e "\033[31mError: smartman is not installed.\033[0m"
+    echo -e "The \033[36mexplain\033[0m command is powered by the brilliant \033[33msmartman-cli\033[0m TUI tool."
+    echo -e "Please install it from your repository first!"
+  fi
 }
