@@ -362,6 +362,6 @@ explain() {
   else
     echo -e "\033[31mError: smartman is not installed.\033[0m"
     echo -e "The \033[36mexplain\033[0m command is powered by the brilliant \033[33msmartman-cli\033[0m TUI tool."
-    echo -e "Please install it from your repository first!"
+    echo -e "Install it from: https://github.com/novitaswebworks/smartman-cli"
   fi
 }
