@@ -373,7 +373,101 @@ tp() {
 # 18. SEMANTIC FOLDER CLEANER (tidy)
 # ---------------------------------------------------------
 tidy() {
+  if [[ "$1" == "--undo" ]]; then
+    local target_dir="${2:-.}"
+    if [[ -f "$target_dir/.tidy-undo.sh" ]]; then
+      echo -e "\033[36m⏪ Reversing the last tidy operation...\033[0m"
+      bash "$target_dir/.tidy-undo.sh"
+      rm -f "$target_dir/.tidy-undo.sh"
+      echo -e "\033[32mUndo complete! Files are back where they started.\033[0m"
+    else
+      echo -e "\033[31mNo undo history found in $target_dir.\033[0m"
+    fi
+    return 0
+  fi
+
   local target_dir="${1:-.}"
+  if [[ ! -d "$target_dir" ]]; then
+    echo "Directory not found!"
+    return 1
+  fi
+  
+  echo -e "\033[36m🧹 Scanning files in $target_dir...\033[0m"
+  
+  local tmp_list=$(mktemp)
+  # Smart Filter: Find only unhidden files (depth 1)
+  find "$target_dir" -maxdepth 1 -type f -not -name ".*" | awk -F/ '{print $NF}' > "$tmp_list"
+  
+  local total_files=$(wc -l < "$tmp_list" | tr -d ' ')
+  if [[ "$total_files" -eq 0 ]]; then
+    echo "No files to tidy."
+    rm -f "$tmp_list"
+    return 0
+  fi
+  
+  echo -e "\033[36mFound $total_files files. Grouping...\033[0m"
+  
+  local batch_size=50
+  local current=1
+  local undo_script="$target_dir/.tidy-undo.sh"
+  local proposed_moves=$(mktemp)
+  
+  # Deep Scanner: Process in batches
+  while [[ $current -le $total_files ]]; do
+    local batch_files=$(tail -n +$current "$tmp_list" | head -n $batch_size)
+    if [[ -z "$batch_files" ]]; then break; fi
+    
+    local sys="You are a strict file organizer. Analyze these filenames. Group them logically by purpose into folder names (e.g., 'Images', 'Invoices', 'Code'). Output ONLY a list in the exact format: 'FolderName|filename.ext'. Do not use markdown, no code blocks, no explanations. One per line. Preserve the exact filename."
+    local batch_plan=$(_call_groq "$sys" "$batch_files")
+    
+    # Only keep lines with exactly one pipe symbol
+    echo "$batch_plan" | grep "|" >> "$proposed_moves"
+    
+    current=$((current + batch_size))
+  done
+  
+  rm -f "$tmp_list"
+  
+  if [[ ! -s "$proposed_moves" ]]; then
+    echo -e "\033[31mFailed to generate a cleanup plan.\033[0m"
+    rm -f "$proposed_moves"
+    return 1
+  fi
+  
+  echo -e "\n\033[33mProposed Cleanup Plan:\033[0m"
+  awk -F'|' '{
+    folder=$1; gsub(/^[ 	]+|[ 	]+$/, "", folder);
+    file=$2; gsub(/^[ 	]+|[ 	]+$/, "", file);
+    printf "  📁 %-20s <- 📄 %s\n", folder, file
+  }' "$proposed_moves" | sort
+  
+  echo
+  read -q "REPLY?Execute this cleanup? (y/n): " < /dev/tty
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "#!/bin/bash" > "$undo_script"
+    
+    while IFS='|' read -r folder file; do
+      folder=$(echo "$folder" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+      file=$(echo "$file" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+      
+      if [[ -n "$folder" && -n "$file" && -f "$target_dir/$file" ]]; then
+        mkdir -p "$target_dir/$folder"
+        mv "$target_dir/$file" "$target_dir/$folder/"
+        # Generate the Magic Undo
+        echo "mv \"$target_dir/$folder/$file\" \"$target_dir/$file\"" >> "$undo_script"
+        echo "rmdir \"$target_dir/$folder\" 2>/dev/null || true" >> "$undo_script"
+      fi
+    done < "$proposed_moves"
+    
+    echo -e "\033[32mDirectory tidied!\033[0m"
+    echo -e "\033[36m(If you made a mistake, type 'tidy --undo' to revert)\033[0m"
+  else
+    echo "Aborted."
+  fi
+  
+  rm -f "$proposed_moves"
+}"
   if [[ ! -d "$target_dir" ]]; then
     echo "Directory not found!"
     return 1
