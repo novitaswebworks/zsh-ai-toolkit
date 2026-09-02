@@ -57,7 +57,7 @@ fix() {
   local last_cmd=$(fc -ln -1 | sed 's/^[ \t]*//')
   echo -e "\033[36m🤖 Analyzing last command:\033[0m $last_cmd"
   
-  local sys="You are a terminal debugging assistant for macOS. The user provides a command that failed or needs fixing. Output the corrected command on the very first line. On the second line, provide a brief 1-sentence explanation of what was wrong."
+  local sys="You are a terminal debugging assistant. The user provides a failed command. Output ONLY the corrected command on the very first line. On the second line, provide a brief 1-sentence explanation. CRITICAL: If the command is dangerous (e.g. rm -rf), destructive, or impossible to fix, output exactly \'ABORT_FIX\' on the first line."
   local response=$(_call_groq "$sys" "$last_cmd")
   echo -e "\n$response\n"
 }
@@ -75,7 +75,7 @@ gac() {
     fi
   fi
   echo -e "\033[36m🤖 Analyzing git diff...\033[0m"
-  local sys="You are a senior developer. Given a git diff, output ONLY a conventional semantic commit message (e.g., feat: add login, fix: correct typo). Provide a title line, and a brief description body if necessary. Do not include quotes, markdown backticks, or any other explanations."
+  local sys="You are a senior developer. Given a git diff, output ONLY a conventional semantic commit message. CRITICAL FORMAT: Exactly ONE line for the title. If necessary, leave a blank line and provide up to 3 bullet points. NEVER wrap the output in quotes. NEVER output markdown backticks (```). DO NOT output any other explanations."
   
   # Truncate diff if it's too massive
   local truncated_diff=$(echo "$diff" | head -n 500)
@@ -144,7 +144,7 @@ sql-gen() {
     return 1
   fi
   echo -e "\033[36m🤖 Generating SQL...\033[0m"
-  local sys="You are a DBA. Generate a standard SQL query based on the request. Output ONLY the raw SQL query. No markdown, no explanations."
+  local sys="You are a DBA. Generate a standard SQL query based on the request. CRITICAL: Output ONLY the raw SQL query. NEVER output markdown backticks (```). No explanations."
   _call_groq "$sys" "$prompt"
 }
 
@@ -184,7 +184,7 @@ iac() {
     return 1
   fi
   echo -e "\033[36m🤖 Generating Terraform Infrastructure...\033[0m"
-  local sys="You are a Senior Cloud Engineer. Generate ONLY the raw Terraform code (main.tf) to fulfill the user's request. Use AWS by default unless specified otherwise. Do not include markdown formatting or explanations."
+  local sys="You are a Senior Cloud Engineer. Generate ONLY the raw Terraform code (main.tf) to fulfill the request. Use AWS by default. CRITICAL: Output ONLY the raw code. NEVER output markdown backticks (```). No explanations."
   local content=$(_call_groq "$sys" "$prompt")
   echo "$content" > "main.tf"
   echo -e "\033[32mCreated main.tf in the current directory!\033[0m"
@@ -204,7 +204,9 @@ net-doctor() {
   echo -e "\033[36m🤖 Running ping test to $target...\033[0m"
   local ping_res=$(ping -c 4 "$target" 2>&1)
   echo -e "\033[36m🤖 Analyzing network data...\033[0m"
-  local sys="You are a Senior Network Engineer. Analyze the provided ping output. Explain in plain English whether the connection is healthy, or why the user might be having connectivity issues (packet loss, latency). Suggest next debugging steps."
+  local sys="You are a Senior Network Engineer. Analyze the provided network output. FORMAT STRICTLY AS FOLLOWS:
+🔴 Diagnosis: <Is it healthy? Why is there packet loss/latency?>
+🟢 Next Steps: <1-2 clear debugging steps>"
   local response=$(_call_groq "$sys" "Target: $target\nPing Output:\n$ping_res")
   echo -e "\n$response\n"
 }
@@ -240,7 +242,7 @@ audit-logs() {
     return 1
   fi
   echo -e "\033[36m🤖 Auditing logs for anomalies (last 250 lines)...\033[0m"
-  local sys="You are a DevOps auditing expert. Filter out all the normal operational noise from these logs. Output a clean, bulleted list of ONLY the anomalies, stack traces, errors, or suspicious behavior. If everything looks fine, just say 'Logs look healthy!'"
+  local sys="You are a DevOps auditing expert. Filter out normal operational noise. Do not hallucinate errors. Ignore known harmless warnings. Categorize findings strictly as 🔴 CRITICAL or 🟠 WARNING. If everything looks fine, just output \'✅ Logs look healthy!\'"
   local response=$(_call_groq "$sys" "$input")
   echo -e "\n$response\n"
 }
@@ -260,7 +262,9 @@ snipe() {
     return 0
   fi
   echo -e "\033[36m🤖 Sniping port $port...\033[0m"
-  local sys="You are a system administrator. Explain exactly what process is running on this port based on the lsof output, what it likely is (e.g. Jenkins, Node.js), and give a 1 sentence summary."
+  local sys="You are a system administrator. Explain what process is running on this port based on the lsof output. FORMAT STRICTLY AS FOLLOWS:
+🔴 Process: <Name of process and what it does>
+🟢 Summary: <1 sentence summary>"
   local response=$(_call_groq "$sys" "$output")
   echo -e "\n$response\n"
   
@@ -516,10 +520,10 @@ _autofix_precmd() {
     # Ignore empty commands
     if [[ -z "$last_cmd" ]]; then return; fi
     
-    local sys="You are an expert Zsh terminal assistant. The user ran a command that failed with exit code $exit_code. Command: '$last_cmd'. Output ONLY the raw corrected bash command. No markdown, no quotes, no explanations. If it cannot be fixed or is dangerous, output nothing."
+    local sys="You are an expert Zsh terminal assistant. The user ran a command that failed with exit code $exit_code. Command: \'$last_cmd\'. Output ONLY the raw corrected bash command. No markdown, no quotes, no explanations. CRITICAL: If the command is dangerous (e.g. rm -rf), destructive, or impossible to fix safely, output exactly \'ABORT_FIX\'."
     local suggestion=$(_call_groq "$sys" "Fix this command: $last_cmd")
     
-    if [[ -n "$suggestion" ]]; then
+    if [[ -n "$suggestion" && "$suggestion" != *"ABORT_FIX"* ]]; then
       echo -e "\033[33m💡 AI Suggestion: $suggestion\033[0m"
       # Magically inject the suggestion into the input buffer!
       print -z "$suggestion"
@@ -662,7 +666,7 @@ fix() {
   local last_cmd=$(fc -ln -1 | sed 's/^[ \t]*//')
   echo -e "\033[36m🤖 Analyzing last command:\033[0m $last_cmd"
   
-  local sys="You are a terminal debugging assistant for macOS. The user provides a command that failed or needs fixing. Output the corrected command on the very first line. On the second line, provide a brief 1-sentence explanation of what was wrong."
+  local sys="You are a terminal debugging assistant. The user provides a failed command. Output ONLY the corrected command on the very first line. On the second line, provide a brief 1-sentence explanation. CRITICAL: If the command is dangerous (e.g. rm -rf), destructive, or impossible to fix, output exactly \'ABORT_FIX\' on the first line."
   local response=$(_call_groq "$sys" "$last_cmd")
   echo -e "\n$response\n"
 }
@@ -680,7 +684,7 @@ gac() {
     fi
   fi
   echo -e "\033[36m🤖 Analyzing git diff...\033[0m"
-  local sys="You are a senior developer. Given a git diff, output ONLY a conventional semantic commit message (e.g., feat: add login, fix: correct typo). Provide a title line, and a brief description body if necessary. Do not include quotes, markdown backticks, or any other explanations."
+  local sys="You are a senior developer. Given a git diff, output ONLY a conventional semantic commit message. CRITICAL FORMAT: Exactly ONE line for the title. If necessary, leave a blank line and provide up to 3 bullet points. NEVER wrap the output in quotes. NEVER output markdown backticks (```). DO NOT output any other explanations."
   
   # Truncate diff if it's too massive
   local truncated_diff=$(echo "$diff" | head -n 500)
@@ -749,7 +753,7 @@ sql-gen() {
     return 1
   fi
   echo -e "\033[36m🤖 Generating SQL...\033[0m"
-  local sys="You are a DBA. Generate a standard SQL query based on the request. Output ONLY the raw SQL query. No markdown, no explanations."
+  local sys="You are a DBA. Generate a standard SQL query based on the request. CRITICAL: Output ONLY the raw SQL query. NEVER output markdown backticks (```). No explanations."
   _call_groq "$sys" "$prompt"
 }
 
@@ -789,7 +793,7 @@ iac() {
     return 1
   fi
   echo -e "\033[36m🤖 Generating Terraform Infrastructure...\033[0m"
-  local sys="You are a Senior Cloud Engineer. Generate ONLY the raw Terraform code (main.tf) to fulfill the user's request. Use AWS by default unless specified otherwise. Do not include markdown formatting or explanations."
+  local sys="You are a Senior Cloud Engineer. Generate ONLY the raw Terraform code (main.tf) to fulfill the request. Use AWS by default. CRITICAL: Output ONLY the raw code. NEVER output markdown backticks (```). No explanations."
   local content=$(_call_groq "$sys" "$prompt")
   echo "$content" > "main.tf"
   echo -e "\033[32mCreated main.tf in the current directory!\033[0m"
@@ -809,7 +813,9 @@ net-doctor() {
   echo -e "\033[36m🤖 Running ping test to $target...\033[0m"
   local ping_res=$(ping -c 4 "$target" 2>&1)
   echo -e "\033[36m🤖 Analyzing network data...\033[0m"
-  local sys="You are a Senior Network Engineer. Analyze the provided ping output. Explain in plain English whether the connection is healthy, or why the user might be having connectivity issues (packet loss, latency). Suggest next debugging steps."
+  local sys="You are a Senior Network Engineer. Analyze the provided network output. FORMAT STRICTLY AS FOLLOWS:
+🔴 Diagnosis: <Is it healthy? Why is there packet loss/latency?>
+🟢 Next Steps: <1-2 clear debugging steps>"
   local response=$(_call_groq "$sys" "Target: $target\nPing Output:\n$ping_res")
   echo -e "\n$response\n"
 }
@@ -845,7 +851,7 @@ audit-logs() {
     return 1
   fi
   echo -e "\033[36m🤖 Auditing logs for anomalies (last 250 lines)...\033[0m"
-  local sys="You are a DevOps auditing expert. Filter out all the normal operational noise from these logs. Output a clean, bulleted list of ONLY the anomalies, stack traces, errors, or suspicious behavior. If everything looks fine, just say 'Logs look healthy!'"
+  local sys="You are a DevOps auditing expert. Filter out normal operational noise. Do not hallucinate errors. Ignore known harmless warnings. Categorize findings strictly as 🔴 CRITICAL or 🟠 WARNING. If everything looks fine, just output \'✅ Logs look healthy!\'"
   local response=$(_call_groq "$sys" "$input")
   echo -e "\n$response\n"
 }
@@ -865,7 +871,9 @@ snipe() {
     return 0
   fi
   echo -e "\033[36m🤖 Sniping port $port...\033[0m"
-  local sys="You are a system administrator. Explain exactly what process is running on this port based on the lsof output, what it likely is (e.g. Jenkins, Node.js), and give a 1 sentence summary."
+  local sys="You are a system administrator. Explain what process is running on this port based on the lsof output. FORMAT STRICTLY AS FOLLOWS:
+🔴 Process: <Name of process and what it does>
+🟢 Summary: <1 sentence summary>"
   local response=$(_call_groq "$sys" "$output")
   echo -e "\n$response\n"
   
