@@ -42,6 +42,8 @@ This toolkit injects **Groq's high-speed inference** directly into your Zsh (Mac
 4. Run `source ~/.zshrc`. Type `shortcuts` or `ai-help` to see your new arsenal!
 
 ### 🐧 Linux
+*Note: If you don't have Zsh installed, run `sudo apt install zsh` (Ubuntu/Debian) or `sudo dnf install zsh` (Fedora/RHEL), and type `zsh` to switch.*
+
 1. Copy the contents of `linux/zsh_ai_tools.zsh` and `linux/groq_autocomplete.zsh` to your home directory.
 2. Add your API key to a `~/.zsh_secrets` file (see `linux/zsh_secrets.example`).
 3. Source them at the bottom of your `~/.zshrc`.
