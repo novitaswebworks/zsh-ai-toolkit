@@ -42,7 +42,7 @@ echo -e "\n${CYAN}Which AI Provider would you like to use?${RESET}"
 echo "1) Groq (Blazing fast, Open-source models)"
 echo "2) OpenAI (ChatGPT, GPT-4o)"
 echo "3) OpenRouter (Access to Claude, Gemini, LLaMA)"
-read -p "Select an option [1-3]: " PROVIDER_CHOICE
+read -p "Select an option [1-3]: " PROVIDER_CHOICE </dev/tty
 
 BASE_URL=""
 MODEL=""
@@ -75,7 +75,7 @@ case $PROVIDER_CHOICE in
 esac
 
 echo -e "\nTo power the AI, you need a free API key from ${YELLOW}$URL_HINT${RESET}"
-read -p "Enter your $PROVIDER_NAME API Key (or press Enter to skip): " API_KEY
+read -p "Enter your $PROVIDER_NAME API Key (or press Enter to skip): " API_KEY </dev/tty
 
 # 3. Download files
 echo -e "\n${CYAN}Downloading core files...${RESET}"

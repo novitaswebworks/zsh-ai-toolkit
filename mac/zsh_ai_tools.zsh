@@ -226,7 +226,7 @@ find-ai() {
 }
 
 # ---------------------------------------------------------
-# 11. TERMINAL DJ (play-music)
+# 11. HEADLESS YOUTUBE STREAMER (play-music)
 # ---------------------------------------------------------
 play-music() {
   local mood="$*"
@@ -234,11 +234,19 @@ play-music() {
     echo "Usage: play-music <mood or genre>"
     return 1
   fi
-  echo -e "\033[36m🤖 Finding the perfect track for: $mood...\033[0m"
-  local sys="You are a DJ. The user will give you a mood. Output ONLY a valid AppleScript that tells the 'Music' app on macOS to play a song or playlist matching that mood. Do not use markdown blocks."
-  local script=$(_call_groq "$sys" "$mood")
-  osascript -e "$script" 2>/dev/null
-  echo -e "\033[32m🎵 Tuning in...\033[0m"
+  
+  if ! command -v mpv &> /dev/null; then
+    echo -e "[31mError: mpv is not installed.[0m"
+    echo "To stream background music directly in the terminal, please install it:"
+    echo "  Mac: brew install mpv yt-dlp"
+    echo "  Linux: sudo apt install mpv yt-dlp"
+    return 1
+  fi
+
+  echo -e "[36m🎵 Tuning in to YouTube for: $mood...[0m"
+  echo -e "[33m(Playing in background. Run 'killall mpv' to stop)[0m"
+  
+  nohup mpv --no-video "ytdl://ytsearch:$mood" > /dev/null 2>&1 &
 }
 
 # ---------------------------------------------------------
