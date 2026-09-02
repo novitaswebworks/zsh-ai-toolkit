@@ -297,3 +297,6 @@ ai-help() {
   echo -e "\033[36mbabel\033[0m        - e.g. \033[33mcat log.txt | babel\033[0m (Translates output to English)"
   echo -e "\033[36mmorph\033[0m        - e.g. \033[33mcat data.json | morph 'to yaml'\033[0m (Transforms data)"
   echo -e "----------------------------------------------------------------"
+  echo -e "\033[36mplay-music\033[0m   - e.g. \033[33mplay-music 'lo-fi chill'\033[0m (Plays via Spotify (Requires Linux integration))"
+  echo -e "================================================================\n"
+}
