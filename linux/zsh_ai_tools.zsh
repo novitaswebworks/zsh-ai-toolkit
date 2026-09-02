@@ -523,6 +523,79 @@ _toxic_precmd() {
 autoload -Uz add-zsh-hook
 add-zsh-hook precmd _toxic_precmd
 
+
+# ---------------------------------------------------------
+# 21. INVISIBLE AUTO-FIXER (auto-fix)
+# ---------------------------------------------------------
+auto-fix() {
+  if [[ "$AUTOFIX_ENABLED" == "true" ]]; then
+    export AUTOFIX_ENABLED="false"
+    echo -e "\033[32mAuto-Fix disabled. Terminal is back to normal.\033[0m"
+  else
+    export AUTOFIX_ENABLED="true"
+    echo -e "\033[36mAuto-Fix enabled. The AI will now magically catch your typos.\033[0m"
+  fi
+}
+
+_autofix_precmd() {
+  local exit_code=$?
+  # If toxic shell is enabled, auto-fix gracefully yields priority
+  if [[ "$AUTOFIX_ENABLED" == "true" && "$TOXIC_SHELL_ENABLED" != "true" && $exit_code -ne 0 && $exit_code -ne 130 ]]; then
+    local last_cmd=$(fc -ln -1 | xargs)
+    # Ignore empty commands
+    if [[ -z "$last_cmd" ]]; then return; fi
+    
+    local sys="You are an expert Zsh terminal assistant. The user ran a command that failed with exit code $exit_code. Command: '$last_cmd'. Output ONLY the raw corrected bash command. No markdown, no quotes, no explanations. If it cannot be fixed or is dangerous, output nothing."
+    local suggestion=$(_call_groq "$sys" "Fix this command: $last_cmd")
+    
+    if [[ -n "$suggestion" ]]; then
+      echo -e "\033[33m💡 AI Suggestion: $suggestion\033[0m"
+      # Magically inject the suggestion into the input buffer!
+      print -z "$suggestion"
+    fi
+  fi
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _autofix_precmd
+
+# ---------------------------------------------------------
+# 22. LOCAL SENIOR ENGINEER (code-review)
+# ---------------------------------------------------------
+code-review() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo -e "\033[31mError: You are not inside a git repository.\033[0m"
+    return 1
+  fi
+
+  echo -e "\033[36m🔍 Analyzing uncommitted git changes...\033[0m"
+  
+  # Grab staged and unstaged changes
+  local diff_cached=$(git diff --cached)
+  local diff_unstaged=$(git diff)
+  
+  if [[ -z "$diff_cached" && -z "$diff_unstaged" ]]; then
+    echo -e "\033[32mNo changes found to review. Your working tree is clean!\033[0m"
+    return 0
+  fi
+  
+  local combined_diff="STAGED CHANGES:\n$diff_cached\n\nUNSTAGED CHANGES:\n$diff_unstaged"
+  
+  local diff_lines=$(echo -e "$combined_diff" | wc -l)
+  if [[ $diff_lines -gt 1500 ]]; then
+    echo -e "\033[31mDiff is too large ($diff_lines lines) for AI context. Please commit in smaller chunks.\033[0m"
+    return 1
+  fi
+  
+  local sys="You are a strict, brilliant Senior Staff Engineer doing a code review. Analyze the provided git diff. Point out: 1. Bugs or logic errors 2. Security vulnerabilities 3. Performance optimizations 4. Nitpicks (typos, naming). Be direct, concise, and highly technical. If the code is flawless, just say 'LGTM! 🚀'."
+  
+  local review=$(_call_groq "$sys" "$combined_diff")
+  
+  echo -e "\n\033[35;1m🤖 CODE REVIEW REPORT\033[0m"
+  echo "================================================================"
+  echo -e "$review"
+  echo -e "================================================================\n"
+}
+
 # ---------------------------------------------------------
 update-ai() {
   echo -e "\033[36m🤖 Pulling latest AI tools from GitHub...\033[0m"
