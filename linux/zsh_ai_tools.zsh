@@ -674,11 +674,24 @@ explain() {
   fi
   
   if command -v smartman &> /dev/null; then
-    # Use the user's custom SmartMan TUI!
     smartman "$cmd"
   else
-    echo -e "\033[31mError: smartman is not installed.\033[0m"
-    echo -e "The \033[36mexplain\033[0m command is powered by the brilliant \033[33msmartman-cli\033[0m TUI tool."
-    echo -e "Install it from: https://github.com/novitaswebworks/smartman-cli"
+    echo -e "[31mError: smartman is not installed.[0m"
+    echo -e "The [36mexplain[0m command is powered by the brilliant [33msmartman-cli[0m TUI tool."
+    read -q "REPLY?Would you like to automatically install it right now? (y/n): "
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      echo -e "[36m
+Installing smartman-cli...[0m"
+      bash -c "$(curl -fsSL https://raw.githubusercontent.com/novitaswebworks/smartman-cli/main/install.sh)"
+      echo -e "
+[32mInstallation complete! Launching smartman...[0m"
+      # Ensure PATH is updated if installer added it
+      export PATH="$HOME/.local/bin:$PATH"
+      smartman "$cmd"
+    else
+      echo -e "
+Installation aborted."
+    fi
   fi
 }
