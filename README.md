@@ -8,12 +8,18 @@ This toolkit injects **Groq's high-speed inference** directly into your Zsh envi
 ## 🌟 Features
 
 *   ⌨️ **`Ctrl+G` (Autocomplete)**: Press `Ctrl+G` to turn plain English into an executable bash command instantly.
+*   👻 **`auto-fix` (Invisible Assistant)**: Toggle this on, and the AI will silently catch your bad commands and magically inject the correct fix right into your prompt!
+*   👨‍💻 **`code-review`**: Instantly runs a strict Senior Engineer code review on your uncommitted `git diff` before you open a PR.
+*   🧹 **`tidy`**: The magical folder cleaner. Run `tidy ~/Downloads` to let the AI organize your messy files into smart subfolders. (Use `tidy --undo` to revert!)
+*   🔮 **`tp` (Teleport)**: Never type long paths again. Run `tp "react frontend"` and it instantly jumps to the matching directory.
+*   📖 **`explain`**: Replaces the boring Linux `man` command with the beautiful, AI-powered SmartMan TUI.
 *   🚑 **`fix`**: Grabs your last failed command and tells you exactly how to fix it.
 *   ⚙️ **`gac`**: Git Auto-Commit. Reads your `git diff` and generates a semantic commit message.
+*   ☠️ **`toxic-shell`**: Turn this on to have the AI ruthlessly roast your intelligence anytime you make a typo.
+*   🕶️ **`hacker-mode`**: Tells the AI to generate a script, but forces you to furiously mash your keyboard to reveal the code like a Hollywood hacker.
 *   🔍 **`hog`**: Uses AI to scan your CPU/RAM and diagnose what's slowing down your machine.
-*   📝 **`write-script`**: Ghostwrites and `chmod +x` a bash or powershell script directly from a prompt.
+*   📝 **`write-script`**: Ghostwrites and `chmod +x` a bash script directly from a prompt.
 *   🌐 **`net-doctor`**: Wraps ping/traceroute and gives a human-readable diagnosis of network latency.
-*   🎧 **`play-music` (Mac only)**: Uses AppleScript to open Apple Music and play a playlist based on your mood.
 
 ---
 
