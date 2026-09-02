@@ -246,7 +246,7 @@ play-music() {
   echo -e "[36m🎵 Tuning in to YouTube for: $mood...[0m"
   echo -e "[33m(Playing in background. Run 'killall mpv' to stop)[0m"
   
-  nohup mpv --no-video "ytdl://ytsearch:$mood" > /dev/null 2>&1 &
+  mpv --no-video "ytdl://ytsearch:$mood"
 }
 
 # ---------------------------------------------------------
