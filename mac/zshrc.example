@@ -1,0 +1,334 @@
+# ==============================
+# ZSH CONFIGURATION
+# ==============================
+
+# ==============================
+# 1. PATH MANAGEMENT
+# ==============================
+# Tie the path array to the PATH environment variable and prevent duplicates
+typeset -U path PATH
+
+# Define path array components logically
+path=(
+  "$HOME/.local/bin"
+  "$HOME/.antigravity/antigravity/bin"
+  "$HOME/.antigravity-ide/antigravity-ide/bin"
+  "$HOME/Library/pnpm/bin"
+  $path
+)
+export PATH
+export PNPM_HOME="$HOME/Library/pnpm"
+
+# ==============================
+# 2. SECURITY & SECRETS
+# ==============================
+# Load secrets if the file exists. This keeps credentials out of version control.
+if [[ -f "$HOME/.zsh_secrets" ]]; then
+  source "$HOME/.zsh_secrets"
+fi
+
+# ==============================
+# 3. HISTORY OPTIMIZATION
+# ==============================
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
+setopt EXTENDED_HISTORY      # Write the history file in the ':start:elapsed;command' format.
+setopt INC_APPEND_HISTORY    # Write to the history file immediately, not when the shell exits.
+setopt SHARE_HISTORY         # Share history between all sessions.
+setopt HIST_IGNORE_DUPS      # Do not record an event that was just recorded again.
+setopt HIST_IGNORE_ALL_DUPS  # Delete an old recorded event if a new event is a duplicate.
+setopt HIST_IGNORE_SPACE     # Do not record an event starting with a space.
+setopt HIST_SAVE_NO_DUPS     # Do not write a duplicate event to the history file.
+setopt HIST_VERIFY           # Do not execute immediately upon history expansion.
+setopt HIST_REDUCE_BLANKS    # Remove superfluous blanks from each command line being added to the history.
+
+# ==============================
+# 4. ALIASES & SHORTCUTS
+# ==============================
+
+# Basic Utilities
+alias c='clear'
+alias h='history'
+alias reload='source ~/.zshrc'
+alias zshrc='nano ~/.zshrc'
+alias gem='agy'
+alias ag='agy'
+
+# Navigation
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias dl='cd ~/Downloads'
+alias dt='cd ~/Desktop'
+alias doc='cd ~/Documents'
+
+# Project Navigation
+# Pattern: alias p_name='cd ~/path/to/project'
+alias p_novaterm='cd ~/Projects/NovaTerm'
+alias p_labops='cd ~/Projects/LabOps'
+alias p_novitas='cd ~/Projects/NovitasWebWorks'
+
+# Eza (Replacement for ls)
+if command -v eza &> /dev/null; then
+  alias ls='eza --icons'
+  alias l='eza -l --icons'
+  alias la='eza -la --icons'
+  alias ll='eza -lah --icons'
+  alias ltr='eza -l --sort=modified --reverse --icons'
+  alias lt='eza -l --sort=modified --icons'
+  alias tree='eza --tree --icons'
+  alias lg='eza -l --git --icons'
+fi
+
+# Git
+alias g='git'
+alias gs='git status'
+alias ga='git add .'
+alias gc='git commit -m'
+alias gca='git commit --amend'
+alias gp='git push'
+alias gl='git pull'
+alias gpl='git pull origin main'
+alias gco='git checkout'
+alias gb='git branch'
+alias gr='git restore'
+alias gd='git diff'
+alias gst='git stash'
+alias gsta='git stash apply'
+alias glg='git log --graph --oneline --decorate --all'
+alias gbda='git branch --merged | egrep -v "(^\*|master|main|dev)" | xargs git branch -d'
+
+# Docker
+alias d='docker'
+alias dco='docker compose'
+alias dcu='docker compose up -d'
+alias dcd='docker compose down'
+alias dps='docker ps'
+alias di='docker images'
+alias dlog='docker logs'
+alias dxe='docker exec -it'
+alias dcl='docker system prune -af --volumes'
+alias ds='docker stats'
+
+# Kubernetes
+alias k='kubectl'
+alias kgp='kubectl get pods'
+alias kgs='kubectl get svc'
+alias kgd='kubectl get deployments'
+alias kaf='kubectl apply -f'
+alias kdf='kubectl delete -f'
+alias kctx='kubectx'
+alias kns='kubens'
+
+# Terraform
+alias tf='terraform'
+alias tfi='terraform init'
+alias tfp='terraform plan'
+alias tfa='terraform apply'
+alias tfd='terraform destroy'
+
+# AWS
+alias asp='export AWS_PROFILE='
+alias awsc='aws sts get-caller-identity'
+alias awsecr='aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin'
+
+# Python Environment
+alias venv='python3 -m venv .venv && source .venv/bin/activate'
+alias act='source .venv/bin/activate'
+alias deact='deactivate'
+alias req='pip freeze > requirements.txt'
+alias pipi='pip install -r requirements.txt'
+
+# macOS Productivity & System Utilities
+alias o='open'
+alias of='open .'
+alias ports='lsof -i -P -n | grep LISTEN'
+alias flushdns='sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder'
+alias bu='brew update && brew upgrade && brew cleanup'
+
+# ==============================
+# 5. FUNCTIONS
+# ==============================
+
+# Create and move into directory
+mkcd() {
+  mkdir -p "$1" && cd "$1"
+}
+
+# Quick git commit + push
+gquick() {
+  git add . && git commit -m "$1" && git push
+}
+
+# Kill process by port number
+killport() {
+  if [ -z "$1" ]; then
+    echo "Usage: killport <port>"
+    return 1
+  fi
+  local pid=$(lsof -ti tcp:"$1")
+  if [ -z "$pid" ]; then
+    echo "No process running on port $1"
+  else
+    kill -9 $pid
+    echo "Killed process $pid on port $1"
+  fi
+}
+
+# Universal archive extractor
+extract() {
+  if [ -z "$1" ]; then
+    echo "Usage: extract <archive>"
+    return 1
+  fi
+  if [ -f "$1" ]; then
+    case "$1" in
+      *.tar.bz2)   tar xjf "$1"     ;;
+      *.tar.gz)    tar xzf "$1"     ;;
+      *.bz2)       bunzip2 "$1"     ;;
+      *.rar)       unrar e "$1"     ;;
+      *.gz)        gunzip "$1"      ;;
+      *.tar)       tar xf "$1"      ;;
+      *.tbz2)      tar xjf "$1"     ;;
+      *.tgz)       tar xzf "$1"     ;;
+      *.zip)       unzip "$1"       ;;
+      *.Z)         uncompress "$1"  ;;
+      *.7z)        7z x "$1"        ;;
+      *)           echo "'$1' cannot be extracted via extract()" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+
+# Display weather
+weather() {
+  local city="${1:-}"
+  if [ -z "$city" ]; then
+    curl wttr.in
+  else
+    curl "wttr.in/${city}"
+  fi
+}
+
+# Network Information
+publicip() {
+  curl -s ifconfig.me
+  echo
+}
+
+localip() {
+  ipconfig getifaddr en0 || echo "Not connected to en0"
+}
+
+# System Information
+sysinfo() {
+  echo -e "\n💻 macOS System Info\n==================="
+  sw_vers
+  echo -e "\n🧠 Uptime\n==================="
+  uptime
+  echo -e "\n💾 Disk Usage\n==================="
+  df -h /
+}
+
+# ==============================
+# 6. EXTERNAL INTEGRATIONS & COMPLETIONS
+# ==============================
+
+# Initialize Zsh completion system
+autoload -Uz compinit
+compinit
+
+# Load Acme.sh environment
+if [[ -f "$HOME/.acme.sh/acme.sh.env" ]]; then
+  . "$HOME/.acme.sh/acme.sh.env"
+fi
+
+# Mole shell completion
+if command -v mole &> /dev/null; then
+  eval "$(mole completion zsh 2>/dev/null)"
+fi
+
+# ==============================
+# 7. PLUGINS
+# ==============================
+# Conditionally load plugins if they exist
+
+ZSH_AUTOSUGGESTIONS_PATH="/opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+if [[ -f "$ZSH_AUTOSUGGESTIONS_PATH" ]]; then
+  source "$ZSH_AUTOSUGGESTIONS_PATH"
+fi
+
+ZSH_SYNTAX_HIGHLIGHTING_PATH="/opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+if [[ -f "$ZSH_SYNTAX_HIGHLIGHTING_PATH" ]]; then
+  source "$ZSH_SYNTAX_HIGHLIGHTING_PATH"
+fi
+
+# ==============================
+# 8. PROMPT (STARSHIP)
+# ==============================
+if command -v starship &> /dev/null; then
+  eval "$(starship init zsh)"
+fi
+
+# ==============================
+# 9. AI COMMAND COMPLETION & TOOLS
+# ==============================
+if [[ -f "$HOME/.groq_autocomplete.zsh" ]]; then
+  source "$HOME/.groq_autocomplete.zsh"
+fi
+
+if [[ -f "$HOME/.zsh_ai_tools" ]]; then
+  source "$HOME/.zsh_ai_tools"
+fi
+
+# ==============================
+# 10. MASTER CHEATSHEET
+# ==============================
+shortcuts() {
+  echo -e "\n\033[35;1m🚀 MASTER TERMINAL SHORTCUTS\033[0m"
+  echo -e "================================================================"
+  
+  echo -e "\033[33;1m📁 NAVIGATION & SYSTEM\033[0m"
+  echo -e "  \033[36mdl / dt / doc\033[0m  - Go to Downloads / Desktop / Documents"
+  echo -e "  \033[36mp_novaterm\033[0m     - Go to NovaTerm project (etc. for LabOps/Novitas)"
+  echo -e "  \033[36mll / tree / lt\033[0m - Eza powered list (all, tree, sort by time)"
+  echo -e "  \033[36mports\033[0m          - List all listening ports"
+  echo -e "  \033[36mkillport\033[0m       - e.g. \033[32mkillport 3000\033[0m (Kills process on port)"
+  echo -e "  \033[36mextract\033[0m        - Extracts any archive (.zip, .tar.gz, etc)"
+  echo -e "  \033[36mreload\033[0m         - Reloads ~/.zshrc"
+  
+  echo -e "\n\033[33;1m🐳 DOCKER\033[0m"
+  echo -e "  \033[36mdco / dcu / dcd\033[0m- docker compose / up -d / down"
+  echo -e "  \033[36mdlog\033[0m           - docker logs"
+  echo -e "  \033[36mdxe\033[0m            - docker exec -it"
+  echo -e "  \033[36mdcl\033[0m            - Complete system prune (cleanup everything)"
+  
+  echo -e "\n\033[33;1m🌿 GIT\033[0m"
+  echo -e "  \033[36mglg\033[0m            - Beautiful git log tree graph"
+  echo -e "  \033[36mgca\033[0m            - Git commit --amend"
+  echo -e "  \033[36mgbda\033[0m           - Delete all merged branches safely"
+  echo -e "  \033[36mgquick\033[0m         - e.g. \033[32mgquick 'message'\033[0m (Add, Commit, Push)"
+  
+  echo -e "\n\033[33;1m☁️  CLOUD & INFRA (K8s / TF / AWS)\033[0m"
+  echo -e "  \033[36mkgp / kgs / kgd\033[0m- kubectl get pods / svc / deployments"
+  echo -e "  \033[36mtfi / tfp / tfa\033[0m- terraform init / plan / apply"
+  echo -e "  \033[36masp\033[0m            - export AWS_PROFILE="
+  echo -e "  \033[36mawsecr\033[0m         - Auto-login Docker to AWS ECR"
+
+  echo -e "\n\033[33;1m🤖 AI TOOLS (Groq Powered)\033[0m"
+  echo -e "  \033[36mCtrl+G\033[0m         - Autocomplete any typed command"
+  echo -e "  \033[36mfix\033[0m            - Fixes the last failed command"
+  echo -e "  \033[36mgac\033[0m            - Git Auto-Commit (Reads diff, suggests msg)"
+  echo -e "  \033[36msnipe\033[0m          - e.g. \033[32msnipe 3000\033[0m (AI explains & kills port)"
+  echo -e "  \033[36mwrite-script\033[0m   - Generates and chmod+x a bash script"
+  echo -e "  \033[36miac\033[0m            - Generates Terraform main.tf"
+  echo -e "  \033[36mnet-doctor\033[0m     - Diagnoses ping/traceroute issues"
+  echo -e "  \033[36mfind-ai\033[0m        - e.g. \033[32mfind-ai 'database passwords'\033[0m"
+  echo -e "  \033[36maudit-logs\033[0m     - e.g. \033[32maudit-logs error.log\033[0m (Find anomalies)"
+  echo -e "  \033[36mmorph\033[0m          - e.g. \033[32mcat data.json | morph 'to yaml'\033[0m"
+  echo -e "  \033[36mbabel\033[0m          - Translates any pipe input to English"
+  echo -e "  \033[36mhog\033[0m            - Finds what's slowing down your Mac CPU/RAM"
+  echo -e "================================================================\n"
+}
