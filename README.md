@@ -1,7 +1,7 @@
 # ⚡️ Blazing Fast AI Terminal Toolkit
 
 Turn your terminal into a contextual, lightning-fast AI assistant. 
-This toolkit injects **Groq's high-speed inference** directly into your Zsh (Mac/Linux) or PowerShell (Windows) environment, without the bloated dependencies of other CLI tools.
+This toolkit injects **Groq's high-speed inference** directly into your Zsh environment, without the bloated dependencies of other CLI tools.
 
 ---
 
@@ -24,7 +24,6 @@ This toolkit injects **Groq's high-speed inference** directly into your Zsh (Mac
 3.  **Shell**: 
     *   **macOS**: Uses Zsh (which is already the default on Mac).
     *   **Linux**: You must have `zsh` installed (the `Ctrl+G` widget relies on the Zsh Line Editor).
-    *   **Windows**: Uses standard PowerShell.
 
 ---
 
@@ -68,17 +67,6 @@ update-ai
 3. Source them at the bottom of your `~/.zshrc`.
 4. Run `source ~/.zshrc`. 
 
-### 🪟 Windows (PowerShell)
-1. Copy `windows/ai_tools.ps1` to a safe location (e.g., `C:\Scripts\ai_tools.ps1`).
-2. Open your PowerShell profile (`notepad $PROFILE`).
-3. Add your API key as an environment variable and dot-source the script:
-   ```powershell
-   $env:GROQ_API_KEY = "your_api_key_here"
-   . C:\Scripts\ai_tools.ps1
-   ```
-4. Restart PowerShell. You can now use `Fix-Command` and `Write-AiScript`!
-
----
 
 ## 🛡 Security Note
 
