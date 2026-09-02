@@ -75,7 +75,7 @@ gac() {
     fi
   fi
   echo -e "\033[36m🤖 Analyzing git diff...\033[0m"
-  local sys="You are a senior developer. Given a git diff, output ONLY a conventional semantic commit message. CRITICAL FORMAT: Exactly ONE line for the title. If necessary, leave a blank line and provide up to 3 bullet points. NEVER wrap the output in quotes. NEVER output markdown backticks (```). DO NOT output any other explanations."
+  local sys="You are a senior developer. Given a git diff, output ONLY a conventional semantic commit message. CRITICAL FORMAT: Exactly ONE line for the title. If necessary, leave a blank line and provide up to 3 bullet points. NEVER wrap the output in quotes. NEVER output markdown backticks. DO NOT output any other explanations."
   
   # Truncate diff if it's too massive
   local truncated_diff=$(echo "$diff" | head -n 500)
@@ -101,7 +101,7 @@ write-script() {
     return 1
   fi
   echo -e "\033[36m🤖 Generating bash script...\033[0m"
-  local sys="You are an expert bash scripter. Write a bash script that fulfills the request. CRITICAL: Output ONLY the raw script content. The very first character MUST be the # in #!/bin/bash. NEVER output markdown backticks (```). No conversational text."
+  local sys="You are an expert bash scripter. Write a bash script that fulfills the request. CRITICAL: Output ONLY the raw script content. The very first character MUST be the # in #!/bin/bash. NEVER output markdown backticks. No conversational text."
   local content=$(_call_groq "$sys" "$prompt")
   
   local filename="script_$(date +%s).sh"
@@ -144,7 +144,7 @@ sql-gen() {
     return 1
   fi
   echo -e "\033[36m🤖 Generating SQL...\033[0m"
-  local sys="You are a DBA. Generate a standard SQL query based on the request. CRITICAL: Output ONLY the raw SQL query. NEVER output markdown backticks (```). No explanations."
+  local sys="You are a DBA. Generate a standard SQL query based on the request. CRITICAL: Output ONLY the raw SQL query. NEVER output markdown backticks. No explanations."
   _call_groq "$sys" "$prompt"
 }
 
@@ -186,7 +186,7 @@ iac() {
     return 1
   fi
   echo -e "\033[36m🤖 Generating Terraform Infrastructure...\033[0m"
-  local sys="You are a Senior Cloud Engineer. Generate ONLY the raw Terraform code (main.tf) to fulfill the request. Use AWS by default. CRITICAL: Output ONLY the raw code. NEVER output markdown backticks (```). No explanations."
+  local sys="You are a Senior Cloud Engineer. Generate ONLY the raw Terraform code (main.tf) to fulfill the request. Use AWS by default. CRITICAL: Output ONLY the raw code. NEVER output markdown backticks. No explanations."
   local content=$(_call_groq "$sys" "$prompt")
   echo "$content" > "main.tf"
   echo -e "\033[32mCreated main.tf in the current directory!\033[0m"
