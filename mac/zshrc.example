@@ -71,7 +71,7 @@ alias p_novitas='cd ~/Projects/NovitasWebWorks'
 
 # Eza (Replacement for ls)
 if command -v eza &> /dev/null; then
-  alias ls='eza --icons'
+  alias ls='ls -G'
   alias l='eza -l --icons'
   alias la='eza -la --icons'
   alias ll='eza -lah --icons'
