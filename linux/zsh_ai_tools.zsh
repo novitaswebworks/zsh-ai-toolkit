@@ -536,35 +536,170 @@ add-zsh-hook precmd _autofix_precmd
 # ---------------------------------------------------------
 # 22. LOCAL SENIOR ENGINEER (code-review)
 # ---------------------------------------------------------
+# Usage:
+#   code-review                   → Full review: uncommitted + recent commits + codebase
+#   code-review --diff            → Only uncommitted changes (original behavior)
+#   code-review --commits [N]     → Review last N commits (default: 5)
+#   code-review <file|dir> ...    → Review specific files or directories
+#   code-review --help            → Show usage
+# ---------------------------------------------------------
 code-review() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     echo -e "\033[31mError: You are not inside a git repository.\033[0m"
     return 1
   fi
 
-  echo -e "\033[36m🔍 Analyzing uncommitted git changes...\033[0m"
-  
-  # Grab staged and unstaged changes
-  local diff_cached=$(git diff --cached)
-  local diff_unstaged=$(git diff)
-  
-  if [[ -z "$diff_cached" && -z "$diff_unstaged" ]]; then
-    echo -e "\033[32mNo changes found to review. Your working tree is clean!\033[0m"
+  local mode="full"
+  local commit_count=5
+  local -a target_paths
+
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --diff)
+        mode="diff"
+        shift
+        ;;
+      --commits)
+        mode="commits"
+        shift
+        if [[ -n "$1" && "$1" =~ ^[0-9]+$ ]]; then
+          commit_count=$1
+          shift
+        fi
+        ;;
+      --help|-h)
+        echo -e "\033[36mUsage:\033[0m"
+        echo -e "  \033[33mcode-review\033[0m                   Full review: uncommitted + recent commits + codebase"
+        echo -e "  \033[33mcode-review --diff\033[0m            Only uncommitted changes (original behavior)"
+        echo -e "  \033[33mcode-review --commits [N]\033[0m     Review last N commits (default: 5)"
+        echo -e "  \033[33mcode-review <file|dir> ...\033[0m    Review specific files or directories"
+        echo -e "  \033[33mcode-review --help\033[0m            Show this help"
+        return 0
+        ;;
+      *)
+        mode="files"
+        target_paths+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  local sys="You are an expert Senior Staff Engineer performing a thorough code review. CRITICAL RULES: 1. DO NOT review syntax or type mismatches; assume the code compiles perfectly. 2. DO NOT output internal chain-of-thought. 3. FOCUS ONLY on logic bugs, race conditions, blocking I/O, severe security vulnerabilities, dead code, code smells, and architectural concerns. 4. If the code is fine, simply output '✅ No major issues found.' Do not invent bugs. 5. PYTHON RULES: Assume async UI event handlers execute sequentially; recognize async generators; respect framework cancellation mechanisms; do not flag unknown LLM model IDs; accept 'except Exception: pass' as defensive programming in UI shutdown contexts. FORMAT: Categorize findings strictly under 🔴 BUGS, 🟠 SECURITY, 🟡 OPTIMIZATIONS, 🔵 CODE QUALITY. Omit empty categories. For every issue found, provide a 2-3 line code snippet showing exactly how to fix it."
+
+  local review_input=""
+
+  # ── Section 1: Uncommitted changes ──
+  if [[ "$mode" == "diff" || "$mode" == "full" ]]; then
+    echo -e "\033[36m🔍 Analyzing uncommitted changes...\033[0m"
+    local diff_cached=$(git diff --cached)
+    local diff_unstaged=$(git diff)
+
+    if [[ -n "$diff_cached" || -n "$diff_unstaged" ]]; then
+      review_input+="═══ UNCOMMITTED CHANGES ═══\n"
+      [[ -n "$diff_cached" ]] && review_input+="── STAGED ──\n$diff_cached\n\n"
+      [[ -n "$diff_unstaged" ]] && review_input+="── UNSTAGED ──\n$diff_unstaged\n\n"
+    else
+      if [[ "$mode" == "diff" ]]; then
+        echo -e "\033[32mNo uncommitted changes found. Your working tree is clean!\033[0m"
+        return 0
+      fi
+      echo -e "\033[33m  ↳ No uncommitted changes.\033[0m"
+    fi
+  fi
+
+  # ── Section 2: Recent commits ──
+  if [[ "$mode" == "commits" || "$mode" == "full" ]]; then
+    echo -e "\033[36m🔍 Analyzing last $commit_count commit(s)...\033[0m"
+    local commit_log=$(git log --oneline -n "$commit_count" 2>/dev/null)
+    local commit_diff=$(git diff HEAD~"$commit_count"..HEAD 2>/dev/null)
+
+    if [[ -z "$commit_diff" ]]; then
+      # Fallback: if HEAD~N doesn't exist (e.g., less than N commits), use --root
+      local total_commits=$(git rev-list --count HEAD 2>/dev/null)
+      if [[ -n "$total_commits" && "$total_commits" -gt 0 ]]; then
+        local actual_count=$(( total_commits < commit_count ? total_commits : commit_count ))
+        commit_diff=$(git diff HEAD~"$actual_count"..HEAD 2>/dev/null)
+        commit_log=$(git log --oneline -n "$actual_count" 2>/dev/null)
+      fi
+    fi
+
+    if [[ -n "$commit_diff" ]]; then
+      review_input+="═══ RECENT COMMITS ═══\n"
+      review_input+="$commit_log\n\n"
+      review_input+="── DIFF ──\n$commit_diff\n\n"
+    else
+      echo -e "\033[33m  ↳ No committed changes found.\033[0m"
+    fi
+  fi
+
+  # ── Section 3: Specific files / directories ──
+  if [[ "$mode" == "files" ]]; then
+    echo -e "\033[36m🔍 Reviewing specified files/directories...\033[0m"
+    review_input+="═══ CODEBASE FILES ═══\n"
+    for target in "${target_paths[@]}"; do
+      if [[ -d "$target" ]]; then
+        # Directory: grab all tracked source files, skip binaries
+        local files=$(git ls-files "$target" | head -80)
+        while IFS= read -r f; do
+          [[ -z "$f" ]] && continue
+          # Skip binary/media files
+          if [[ "$f" =~ \.(png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|mp3|mp4|zip|tar|gz|pdf|lock)$ ]]; then
+            continue
+          fi
+          review_input+="── FILE: $f ──\n$(head -200 "$f" 2>/dev/null)\n\n"
+        done <<< "$files"
+      elif [[ -f "$target" ]]; then
+        review_input+="── FILE: $target ──\n$(head -300 "$target" 2>/dev/null)\n\n"
+      else
+        echo -e "\033[31m  ✗ Not found: $target\033[0m"
+      fi
+    done
+  fi
+
+  # ── Section 4: Codebase overview (full mode only) ──
+  if [[ "$mode" == "full" ]]; then
+    echo -e "\033[36m🔍 Scanning codebase structure...\033[0m"
+    local tree_overview=$(git ls-files | head -100)
+    local file_count=$(git ls-files | wc -l | tr -d ' ')
+    review_input+="═══ CODEBASE OVERVIEW ($file_count tracked files) ═══\n"
+    review_input+="$tree_overview\n"
+    if [[ "$file_count" -gt 100 ]]; then
+      review_input+="... and $(( file_count - 100 )) more files\n"
+    fi
+    review_input+="\n"
+
+    # Include key config/entry files if they exist
+    local -a key_files=(
+      "package.json" "requirements.txt" "Pipfile" "pyproject.toml" "Cargo.toml"
+      "go.mod" "Gemfile" "Makefile" "Dockerfile" "docker-compose.yml"
+      "docker-compose.yaml" ".env.example" "tsconfig.json"
+    )
+    for kf in "${key_files[@]}"; do
+      if [[ -f "$kf" ]]; then
+        review_input+="── CONFIG: $kf ──\n$(head -60 "$kf" 2>/dev/null)\n\n"
+      fi
+    done
+  fi
+
+  # ── Validate we have something to review ──
+  if [[ -z "$review_input" ]]; then
+    echo -e "\033[32mNothing to review. Repository is clean with no recent activity.\033[0m"
     return 0
   fi
-  
-  local combined_diff="STAGED CHANGES:\n$diff_cached\n\nUNSTAGED CHANGES:\n$diff_unstaged"
-  
-  local diff_lines=$(echo -e "$combined_diff" | wc -l)
-  if [[ $diff_lines -gt 1500 ]]; then
-    echo -e "\033[31mDiff is too large ($diff_lines lines) for AI context. Please commit in smaller chunks.\033[0m"
-    return 1
+
+  # ── Truncate if too large for AI context ──
+  local total_lines=$(echo -e "$review_input" | wc -l)
+  if [[ $total_lines -gt 3000 ]]; then
+    echo -e "\033[33m⚠  Input is large ($total_lines lines). Truncating to fit AI context...\033[0m"
+    review_input=$(echo -e "$review_input" | head -3000)
+    review_input+="\n\n[TRUNCATED — showing first 3000 lines of review scope]"
   fi
-  
-  local sys="You are an expert Senior Staff Engineer doing a code review on a Git Diff. CRITICAL RULES: 1. DO NOT review syntax or type mismatches; assume the code compiles perfectly. 2. DO NOT output internal chain-of-thought. 3. FOCUS ONLY on logic bugs, race conditions, blocking I/O, and severe security vulnerabilities. 4. If the diff is fine, simply output '✅ No major issues found.' Do not invent bugs. 5. PYTHON RULES: Assume async UI event handlers execute sequentially; recognize async generators; respect framework cancellation mechanisms; do not flag unknown LLM model IDs; accept 'except Exception: pass' as defensive programming in UI shutdown contexts. FORMAT: Categorize findings strictly under 🔴 BUGS, 🟠 SECURITY, 🟡 OPTIMIZATIONS. Omit empty categories. For every bug found, provide a 2-3 line code snippet showing exactly how to fix it."
-  
-  local review=$(_call_groq "$sys" "$combined_diff")
-  
+
+  echo -e "\033[36m🤖 Sending to AI for review ($total_lines lines)...\033[0m"
+
+  local review=$(_call_groq "$sys" "$review_input")
+
   echo -e "\n\033[35;1m🤖 CODE REVIEW REPORT\033[0m"
   echo "================================================================"
   echo -e "$review"
